@@ -1,0 +1,6 @@
+Repository\CancionRepository.class
+Model\Cancion.class
+com\mycompany\proyectogb\ProyectoGB.class
+Controller\CancionController.class
+Model\Artista.class
+com\mycompany\proyectogb\MongoDBService.class

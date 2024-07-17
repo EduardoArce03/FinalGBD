@@ -10,6 +10,7 @@ import Repository.CancionRepository;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -55,7 +56,7 @@ public class ProyectoGB {
                     System.out.println("Artista no disponible");
                 }
             }
-
+           
             // Ejemplo de actualización de una canción
             /*cancionController.actualizarCancion("Shape of You",
                     new Cancion("Shape of You",
@@ -69,10 +70,21 @@ public class ProyectoGB {
                                     "Hombre")));
              */
             // Ejemplo de eliminación de una canción
-            cancionController.eliminarCancion("Shape of You");
+            //cancionController.eliminarCancion("Shape of You");
+            System.out.println("BUSCANDO POR FECHA ");
+            // Ejemplo de consulta de canciones estrenadas en un periodo de tiempo
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date fechaInicio = sdf.parse("2023-01-01");
+            Date fechaFin = sdf.parse("2024-01-01");
+            List<Cancion> cancionesPorPeriodo = cancionController.consultarCancionesPorPeriodo(fechaInicio, fechaFin);
+            for (Cancion cancion : cancionesPorPeriodo) {
+                System.out.println(cancion);
+            }
 
         } catch (Exception e) {
             System.err.println("Error al conectar a MongoDB: " + e.getMessage());
         }
+
     }
+
 }

@@ -67,4 +67,11 @@ private String nombre;
                 .append("fechaNacimiento", fechaNacimiento)
                 .append("genero", genero);
     }
+
+    @Override
+    public String toString() {
+        return "Artista{" + "nombre=" + nombre + ", pais=" + pais + ", fechaNacimiento=" + fechaNacimiento + ", genero=" + genero + '}';
+    }
+    
+    
 }

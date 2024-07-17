@@ -39,20 +39,19 @@ public class CancionRepository {
     }
 
     public List<Cancion> consultarTodasCanciones() {
-    List<Cancion> canciones = new ArrayList<>();
-    try (MongoCursor<Document> cursor = collection.find().iterator()) {
-        while (cursor.hasNext()) {
-            Document doc = cursor.next();
-            Cancion cancion = documentToCancion(doc); // Puedes decidir cómo manejar el error aquí, como omitir esta canción o registrar el error.
-            canciones.add(cancion);
+        List<Cancion> canciones = new ArrayList<>();
+        try (MongoCursor<Document> cursor = collection.find().iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Cancion cancion = documentToCancion(doc); // Puedes decidir cómo manejar el error aquí, como omitir esta canción o registrar el error.
+                canciones.add(cancion);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Maneja cualquier otra excepción que pueda surgir al interactuar con MongoDB.
         }
-    } catch (Exception e) {
-        e.printStackTrace();
-        // Maneja cualquier otra excepción que pueda surgir al interactuar con MongoDB.
+        return canciones;
     }
-    return canciones;
-}
-
 
     public List<Cancion> consultarCancionesPorNombre(String nombre) throws ParseException {
         List<Cancion> canciones = new ArrayList<>();
@@ -82,52 +81,122 @@ public class CancionRepository {
         collection.updateOne(filter, update);
     }
 
-    public void eliminarCancion(String nombre) {
-        Document query = new Document("nombre", nombre);
-        collection.deleteOne(query);
+    public boolean eliminarCancion(String nombre) {
+        try {
+            Document query = new Document("nombre", nombre);
+            collection.deleteOne(query);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Eror al eliminar " + e.getMessage());
+        }
+        return false;
+
     }
 
     private Cancion documentToCancion(Document doc) {
-    try {
-        Artista artista = new Artista(
-                doc.getString("artista.nombre"),
-                doc.getString("artista.pais"),
-                parseDate(doc.getString("artista.fechaNacimiento")),
-                doc.getString("artista.genero"));
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-        Date fechaEstreno = null;
-        Object fechaEstrenoObj = doc.get("fechaEstreno");
-        if (fechaEstrenoObj instanceof Date) {
-            fechaEstreno = (Date) fechaEstrenoObj;
-        } else if (fechaEstrenoObj instanceof String) {
-            fechaEstreno = parseDate((String) fechaEstrenoObj);
+            Document artistaDoc = (Document) doc.get("artista");
+            Artista artista = null;
+
+            if (artistaDoc != null) {
+                artista = new Artista(
+                        artistaDoc.getString("nombre"),
+                        artistaDoc.getString("pais"),
+                        artistaDoc.getDate("fechaNacimiento"),
+                        artistaDoc.getString("genero"));
+            }
+
+            Date fechaEstreno = doc.getDate("fechaEstreno");
+
+            return new Cancion(
+                    doc.getString("nombre"),
+                    doc.getList("generos", String.class),
+                    fechaEstreno,
+                    doc.getList("premios", String.class),
+                    doc.getInteger("ventas"),
+                    artista);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private Date parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return null;
         }
 
-        return new Cancion(
-                doc.getString("nombre"),
-                doc.getList("generos", String.class),
-                fechaEstreno,
-                doc.getList("premios", String.class),
-                doc.getInteger("ventas"),
-                artista);
-    } catch (Exception e) {
-        e.printStackTrace();
-        return null;
-    }
-}
-
-
-    private Date parseDate(String dateStr) throws ParseException {
-    if (dateStr == null || dateStr.isEmpty() || dateStr.equals("YYYY-MM-DD")) {
-        return null;
+        try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            return dateFormat.parse(dateStr);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    try {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        return dateFormat.parse(dateStr);
-    } catch (ParseException e) {
-        throw new ParseException("Error al parsear la fecha: " + dateStr, 0);
+    //REPORTES
+    public List<Cancion> consultarCancionesPorPeriodo(Date fechaInicio, Date fechaFin) {
+        List<Cancion> canciones = new ArrayList<>();
+        Document query = new Document("fechaEstreno", new Document("$gte", fechaInicio).append("$lte", fechaFin));
+        try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Cancion cancion = documentToCancion(doc);
+                canciones.add(cancion);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return canciones;
     }
-}
+
+    public List<Cancion> consultarCancionesPorMayorRecaudacion(int limit) {
+
+        List<Cancion> canciones = new ArrayList<>();
+        Document sort = new Document("ventas", -1); // Ordenar por ventas descendente
+        try (MongoCursor<Document> cursor = collection.find().sort(sort).limit(limit).iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Cancion cancion = documentToCancion(doc);
+                canciones.add(cancion);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return canciones;
+    }
+
+    public List<Cancion> consultarCancionesPorArtista(String nombreArtista) {
+        List<Cancion> canciones = new ArrayList<>();
+        Document query = new Document("artista.nombre", nombreArtista);
+        try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Cancion cancion = documentToCancion(doc);
+                canciones.add(cancion);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return canciones;
+    }
+
+    public List<Cancion> consultarCancionesPorGenero(String genero) {
+        List<Cancion> canciones = new ArrayList<>();
+        Document query = new Document("generos", genero);
+        try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                Cancion cancion = documentToCancion(doc);
+                canciones.add(cancion);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return canciones;
+    }
 
 }

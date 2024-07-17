@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 public class CancionController {
 
@@ -22,8 +23,8 @@ public class CancionController {
     }
 
     public void insertarCancion(String nombre, List<String> generos, Date fechaEstreno,
-                                List<String> premios, int ventas, String nombreArtista,
-                                String paisArtista, Date fechaNacimientoArtista, String generoArtista) {
+            List<String> premios, int ventas, String nombreArtista,
+            String paisArtista, Date fechaNacimientoArtista, String generoArtista) {
         Artista artista = new Artista(nombreArtista, paisArtista, fechaNacimientoArtista, generoArtista);
         Cancion cancion = new Cancion(nombre, generos, fechaEstreno, premios, ventas, artista);
         cancionRepository.insertarCancion(cancion);
@@ -38,15 +39,39 @@ public class CancionController {
             return cancionRepository.consultarCancionesPorNombre(nombre);
         } catch (ParseException ex) {
             Logger.getLogger(CancionController.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
         }
-        return null;
+
     }
 
     public void actualizarCancion(String nombre, Cancion nuevaCancion) {
+
         cancionRepository.actualizarCancion(nombre, nuevaCancion);
     }
 
     public void eliminarCancion(String nombre) {
-        cancionRepository.eliminarCancion(nombre);
+        boolean resultado = cancionRepository.eliminarCancion(nombre);
+        if (resultado) {
+            JOptionPane.showMessageDialog(null, "ELIMINADO");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error al eliminar ");
+        }
     }
+    //REPORTES
+    public List<Cancion> consultarCancionesPorPeriodo(Date fechaInicio, Date fechaFin) {
+        return cancionRepository.consultarCancionesPorPeriodo(fechaInicio, fechaFin);
+    }
+
+    public List<Cancion> consultarCancionesPorMayorRecaudacion(int limit) {
+        return cancionRepository.consultarCancionesPorMayorRecaudacion(limit);
+    }
+
+    public List<Cancion> consultarCancionesPorArtista(String nombreArtista) {
+        return cancionRepository.consultarCancionesPorArtista(nombreArtista);
+    }
+
+    public List<Cancion> consultarCancionesPorGenero(String genero) {
+        return cancionRepository.consultarCancionesPorGenero(genero);
+    }
+
 }
